@@ -1,4 +1,4 @@
-# lexer.py - Analizador léxico para C usando PLY
+#Analizador léxico para C usando PLY
 import ply.lex as lex
 import os
 import sys
@@ -56,7 +56,7 @@ tokens_delimiters = (
 
 # 10. Literales
 tokens_literals = (
-    'ID', 'ICONST', 'FCONST', 'SCONST', 'CCONST',
+    'ID', 'ICONST', 'FCONST', 'SCONST', 'CCONST', 'HEADER_FILE',
 )
 
 # 11. Otros
@@ -78,6 +78,13 @@ tokens = (
     tokens_literals +
     tokens_others
 )
+
+# Lista de archivos de cabecera comunes
+common_headers = [
+    'stdio.h', 'stdlib.h', 'string.h', 'math.h', 'ctype.h', 'time.h', 
+    'assert.h', 'limits.h', 'float.h', 'locale.h', 'setjmp.h', 
+    'signal.h', 'stdarg.h', 'stddef.h', 'errno.h', 'eucioctl.h'
+]
 
 # Diccionario de palabras reservadas
 reserved = {
@@ -140,7 +147,10 @@ def t_PRAGMA(t):
     r'\#pragma'
     return t
 
-# Reglas léxicas para tokens simples
+# Regla para archivos de cabecera
+def t_HEADER_FILE(t):
+    r'(<[A-Za-z0-9_./]+\.h>)|("[A-Za-z0-9_./]+\.h")'
+    return t
 
 # Operadores matemáticos
 t_PLUS = r'\+'
@@ -236,6 +246,10 @@ def t_CCONST(t):
 
 def t_SCONST(t):
     r'\"([^\\\n]|(\\.))*?\"'
+    # Verificamos si el contenido es un archivo de cabecera
+    value = t.value.strip('"')
+    if value.endswith('.h'):
+        t.type = 'HEADER_FILE'
     return t
 
 # Manejo de errores
@@ -311,6 +325,11 @@ def analyze_file(filename):
         # Generar tabla de tokens
         token_table = []
         for tok in lexer:
+            # Tratamiento especial para archivos de cabecera después de #include
+            if len(token_table) > 0 and token_table[-1]['type'] == 'INCLUDE' and tok.type in ('SCONST', 'HEADER_FILE'):
+                # Si es un archivo de cabecera entre comillas o entre <>
+                tok.type = 'HEADER_FILE'
+            
             token_table.append({
                 'type': tok.type,
                 'value': tok.value,
@@ -328,6 +347,8 @@ def analyze_file(filename):
 def get_token_family(token_type):
     if token_type in tokens_preprocessor:
         return "Directiva de Preprocesador"
+    elif token_type == 'HEADER_FILE':
+        return "Archivo de Cabecera"
     elif token_type in tokens_keywords:
         return "Palabra Reservada"
     elif token_type in tokens_math_operators:
@@ -367,6 +388,6 @@ def main():
         for i, token in enumerate(tokens):
             print(f"{i+1:<5}{token['type']:<20}{token['family']:<25}{str(token['value']):<20}{token['line']:<10}{token['position']}")
 
-
+        
 if __name__ == "__main__":
     main()

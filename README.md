@@ -16,7 +16,7 @@ Este proyecto implementa un analizador léxico completo para el lenguaje de prog
 - Python 3.7+
 - Biblioteca PLY (`pip install ply`)
 
-## 🚀 Instalación
+##  Instalación
 
 1. Clonar el repositorio:
 git clone https://github.com/RPRicardo/Analizador_Lexico
